@@ -2,6 +2,8 @@ const e = require('express');
 const express = require('express');
 const app = express();
 
+app.use(express.json())
+
 let persons = [
     { 
         "id": 1,
@@ -53,6 +55,26 @@ app.delete('/api/persons/:id', (request, response) => {
     persons = persons.filter(person => person.id !== id);
 
     response.status(204).end();
+})
+
+app.post('/api/persons', (request, response) => {
+    const body = request.body;
+    let genId = Math.max(...persons.map(n => n.id)); // Initialise ID as something that exists in the database
+    
+    // While genId is in the database, continue to re-draw IDs
+    while (persons.map(n => n.id).includes(genId)) {
+        genId = Math.floor(Math.random() * 1000);
+    }
+    
+    const person = {
+        name:   body.name,
+        number: body.number,
+        date:   new Date(),
+        id:     genId
+    }
+
+    persons = persons.concat(person)
+    response.json(person);
 })
 
 const PORT = 3001;
