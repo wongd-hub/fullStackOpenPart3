@@ -3,9 +3,8 @@ var morgan = require('morgan');
 const cors = require('cors');
 const app = express();
 
-
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 morgan.token('post_contents', (request, response) => {
     if (request.body.name) {
