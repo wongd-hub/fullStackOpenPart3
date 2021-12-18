@@ -93,8 +93,6 @@ app.post('/api/persons', (request, response, next) => {
 
             if (result.length > 0) {
 
-                console.log('Name exists, updating existing entry')
-
                 const person = {
                     number: body.number
                 }
@@ -103,7 +101,10 @@ app.post('/api/persons', (request, response, next) => {
                     .findOneAndUpdate(
                         { name: result[0] },
                         person,
-                        { new: true }
+                        // Adding a blocker so that a unique name cannot be updated here
+                        //  feels counter-intuitive to this part; hopefully am interpreting
+                        //  the exercise correctly.
+                        { runValidators: true, context: 'query', new: true }
                     )
                     .then(updatedPerson => {
                         return response.json(updatedPerson)
@@ -128,7 +129,7 @@ app.post('/api/persons', (request, response, next) => {
             }
 
         })
-        
+
 })
 
 const PORT = process.env.PORT;
