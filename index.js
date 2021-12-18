@@ -15,7 +15,9 @@ const errorHandler = (error, request, response, next) => {
 
     if (error.name === 'CastError') {
       return response.status(400).send({ error: 'malformatted id' })
-    } 
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    }
   
     next(error)
 }
@@ -27,29 +29,6 @@ morgan.token('post_contents', (request, response) => {
         return JSON.stringify(request.body)
     }});
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :post_contents'));
-
-let persons = [
-    { 
-        "id": 1,
-        "name": "Arto Hellas", 
-        "number": "040-123456"
-    },
-    { 
-        "id": 2,
-        "name": "Ada Lovelace", 
-        "number": "39-44-5323523"
-    },
-    { 
-        "id": 3,
-        "name": "Dan Abramov", 
-        "number": "12-43-234345"
-    },
-    { 
-        "id": 4,
-        "name": "Mary Poppendieck", 
-        "number": "39-23-6423122"
-    }
-]
 
 app.get('/info', (request, response, next) => {
 
@@ -87,9 +66,7 @@ app.delete('/api/persons/:id', (request, response, next) => {
 
     Person
         .findByIdAndRemove(request.params.id)
-        .then(result => {
-            response.status(204).end();
-        })
+        .then(result => response.status(204).end())
         .catch(error => next(error))
 
 })
@@ -97,44 +74,61 @@ app.delete('/api/persons/:id', (request, response, next) => {
 app.post('/api/persons', (request, response, next) => {
     const body = request.body;
 
+    // If body is empty return error response
     if (!body.name || !body.number) {
+
         return response.status(400).json({ 
             error: 'content missing' 
           })
-    } else if (Person.find({}).then(result => result.map(per => per.name).includes(body.name))) {
 
-        return Person
-            .find({})
-            .then(result => result.find(per => per.name)._id.toString())
-            .then(id => {
+    }
+
+    Person
+        // First, check if there is another entry with the same name - case insensitive
+        .find({})
+        .then(result => result.map(per => per.name))
+        .then(result => result.filter(el => el.toLowerCase() === body.name.toLowerCase()))
+        // If there is; update it. If not, add a new entry
+        .then(result => {
+
+            if (result.length > 0) {
+
+                console.log('Name exists, updating existing entry')
+
                 const person = {
                     number: body.number
                 }
 
                 Person
-                    .findByIdAndUpdate(id, person, { new: true })
+                    .findOneAndUpdate(
+                        { name: result[0] },
+                        person,
+                        { new: true }
+                    )
                     .then(updatedPerson => {
-                        response.json(updatedPerson)
+                        return response.json(updatedPerson)
                     })
                     .catch(error => next(error))
 
-            })
+            } else {
 
-    }
+                const person = new Person({
+                    name:   body.name,
+                    number: body.number,
+                    date:   new Date()
+                })
 
-    const person = new Person({
-        name:   body.name,
-        number: body.number,
-        date:   new Date()
-    })
+                person
+                    .save()
+                    .then(savedPerson => {
+                        return response.json(savedPerson)
+                    })
+                    .catch(error => next(error))
 
-    person
-        .save()
-        .then(savedPerson => {
-            response.json(person)
+            }
+
         })
-        .catch(error => next(error))
-
+        
 })
 
 const PORT = process.env.PORT;
