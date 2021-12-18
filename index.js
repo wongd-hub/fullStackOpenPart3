@@ -9,6 +9,7 @@ app.use(cors());
 app.use(express.static('build'));
 app.use(express.json());
 
+// Define error handling function
 const errorHandler = (error, request, response, next) => {
     console.error(error.message)
 
@@ -116,7 +117,7 @@ app.post('/api/persons', (request, response, next) => {
                         response.json(updatedPerson)
                     })
                     .catch(error => next(error))
-                    
+
             })
 
     }
