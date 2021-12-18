@@ -101,9 +101,24 @@ app.post('/api/persons', (request, response, next) => {
             error: 'content missing' 
           })
     } else if (Person.find({}).then(result => result.map(per => per.name).includes(body.name))) {
-        return response.status(400).json({ 
-            error: 'name matches existing' 
-          })
+
+        return Person
+            .find({})
+            .then(result => result.find(per => per.name)._id.toString())
+            .then(id => {
+                const person = {
+                    number: body.number
+                }
+
+                Person
+                    .findByIdAndUpdate(id, person, { new: true })
+                    .then(updatedPerson => {
+                        response.json(updatedPerson)
+                    })
+                    .catch(error => next(error))
+                    
+            })
+
     }
 
     const person = new Person({
