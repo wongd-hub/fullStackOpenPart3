@@ -6,8 +6,20 @@ const app = express();
 const Person = require('./models/person')
 
 app.use(cors());
-app.use(express.json());
 app.use(express.static('build'));
+app.use(express.json());
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    } 
+  
+    next(error)
+}
+  
+app.use(errorHandler)
 
 morgan.token('post_contents', (request, response) => {
     if (request.body.name) {
@@ -38,7 +50,7 @@ let persons = [
     }
 ]
 
-app.get('/info', (request, response) => {
+app.get('/info', (request, response, next) => {
 
     Person
         .find({})
@@ -48,43 +60,47 @@ app.get('/info', (request, response) => {
             <p>${new Date()}</p>
             `)
         })
+        .catch(error => next(error))
 
 })
 
-app.get('/api/persons', (request, response) => {
+app.get('/api/persons', (request, response, next) => {
 
     Person
         .find({})
         .then(person => response.json(person))
+        .catch(error => next(error))
         
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
 
     Person
         .findById(request.params.id)
         .then(person => response.json(person))
+        .catch(error => next(error))
 
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
 
     Person
         .findByIdAndRemove(request.params.id)
         .then(result => {
             response.status(204).end();
         })
+        .catch(error => next(error))
 
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const body = request.body;
 
     if (!body.name || !body.number) {
         return response.status(400).json({ 
             error: 'content missing' 
           })
-    } else if (persons.map(per => per.name).includes(body.name)) {
+    } else if (Person.find({}).then(result => result.map(per => per.name).includes(body.name))) {
         return response.status(400).json({ 
             error: 'name matches existing' 
           })
@@ -96,9 +112,12 @@ app.post('/api/persons', (request, response) => {
         date:   new Date()
     })
 
-    person.save().then(savedPerson => {
-        response.json(person)
-    })
+    person
+        .save()
+        .then(savedPerson => {
+            response.json(person)
+        })
+        .catch(error => next(error))
 
 })
 
