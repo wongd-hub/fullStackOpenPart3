@@ -76,8 +76,6 @@ app.delete('/api/persons/:id', (request, response) => {
 
 app.post('/api/persons', (request, response) => {
     const body = request.body;
-    let genId = Math.max(...persons.map(n => n.id)); // Initialise ID as something that exists in the database
-    var person;
 
     if (!body.name || !body.number) {
         return response.status(400).json({ 
@@ -87,25 +85,18 @@ app.post('/api/persons', (request, response) => {
         return response.status(400).json({ 
             error: 'name matches existing' 
           })
-    } else {
-
-        // While genId is in the database, continue to re-draw IDs
-        while (persons.map(n => n.id).includes(genId)) {
-            genId = Math.floor(Math.random() * 1000);
-        }
-        
-        person = {
-            name:   body.name,
-            number: body.number,
-            date:   new Date(),
-            id:     genId
-        }
-
-        persons = persons.concat(person)
-
     }
 
-    response.json(person);
+    const person = new Person({
+        name:   body.name,
+        number: body.number,
+        date:   new Date()
+    })
+
+    person.save().then(savedPerson => {
+        response.json(person)
+    })
+
 })
 
 const PORT = process.env.PORT;
