@@ -22,8 +22,6 @@ const errorHandler = (error, request, response, next) => {
   next(error)
 }
 
-app.use(errorHandler)
-
 morgan.token("post_contents", (request) => {
   if (request.body.name) {
     return JSON.stringify(request.body)
@@ -131,6 +129,8 @@ app.post("/api/persons", (request, response, next) => {
     })
 
 })
+
+app.use(errorHandler)
 
 // eslint-disable-next-line no-undef
 const PORT = process.env.PORT
